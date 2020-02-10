@@ -1,4 +1,4 @@
-Angelo carbone ciao
+Vito ciao
 
 /********Dichiarazione assembler di un processo ********/
         .extern c_processo
