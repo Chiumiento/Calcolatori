@@ -1,5 +1,3 @@
-Vito ciao
-
 /********Dichiarazione assembler di un processo ********/
         .extern c_processo
 a_processo: 
