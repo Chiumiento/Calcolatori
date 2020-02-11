@@ -1,4 +1,5 @@
 /********Dichiarazione assembler di un processo ********/
+
         .extern c_processo
 a_processo: 
         /* salva lo stato del processore nel descrittore del processo identificato dalla variabile esecuzione, salva anche (nel campo constesto[I_RSP] del descrittore di processo) il contenuto del registro RSP come lasciato dal processore dopo il cambio di pila e il successivo salvataggio in questa delle cinque parole lunghe. */
@@ -11,6 +12,8 @@ a_processo:
 
         iretq 
 
+/******** ********/
+
 
 /******** Coda di processi ********/
 
@@ -21,6 +24,8 @@ struct proc_elem {
 };
 proc_elem *esecuzione;      // processo in esecuzione
 proc_elem *pronti;      // coda dei processi pronti per essere eseguiti
+
+/******** ********/
 
 
 
@@ -57,4 +62,54 @@ extern "C" void c_abort_p();
 extern "C" des_proc *des_p(natl id);
 // id del procsso dummy (creato durante l'inizializzazione)
 natl dummy_proc;        // conta il numero di processi esistenti nel sistema, quando sono tutti terminati esegue lo shutdown del sistema
+
+/******** ********/
+
+
+
+/******** Macro cavallo_di_troia ********/
+
+/* queste devono essere usate nella parte assembler della primitiva, prima di chiamare la parte C++. Se la parte assembler chiama salva_stato, queste macro devono essere chiamate dopo, in quanto sporcano alcuni registri*/
+
+/* richiede un parametro, che deve essere un operando assembler; controlla che l'operando contenga un indirizzo a cui l'utente può accedere */
+cavallo_di_troia %rdi // reg, %rdi se è il primo parametro della funzione
+
+/* richiede due parametri, ciascuno dei quali deve essere un operando assembler; il primo parametro ha lo stesso significato di prima, mentre il secondo deve specificare la lunghezza della zona di memoria puntata */
+cavallo_di_troia %rdi %rsi // base dimensione, %rdi ed %rsi se sono i primi due parametri della funzione
+
+/******** ********/
+
+
+
+/******** Scrivere nuove primitive ********/
+
+// costanti.h
+// per prima cosa occcorre assegnare un tipo di interruzione alla primitiva modificando il file costanti.h, supponiamo di voler aggiungere una primitiva getid() che restituisce l'identificatore del processo che la invoca
+
+#define TIPO_GETID  0x59 // 0x59 semplicemente perchè non è ancora stato usato
+
+// sistema.s
+// per caricare il corrispondente gate della IDT possiamo aggiungere una riga alla funzione init_idt che si trova nel file sistema.s. Tale funzione è chiamata all'avvio del sistema e si occupa di inizializzare la tabella IDT. Possiamo usare la macro carica_gate che richiede tre parametri: tipo della primitiva, indirizzo a cui saltare, livello di privilegio per utilizzarla tramite una int (DPL); 
+// P = 1; I/T = T; L = S;
+
+carica_gate TIPO_GET_ID a_getid LIV_UTENTE
+
+//sys.h
+
+extern "C" natl getid();
+
+//utente.s
+
+.global getid
+getid:
+    int $TIPO_GETID
+    ret
+ 
+
+
+
+
+
+
+
 
