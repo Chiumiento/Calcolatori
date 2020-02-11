@@ -125,11 +125,195 @@ getid:
 /******** Funzioni di supporto ********/
  
 // restituisce un puntatore al descrittore del processo di identificatore id (0 se tale processo non esiste)
-des_proc *des_p(natl id);
+des_proc *des_p(natl id)
 
 // sceglie il prossimo persorso da mettere in esecuzione (cambiando quindi il valore della variabile esecuzione)
+void schedulatore()
+
+// inserisce p_elem nella lista p_lista, mantenendo l'ordinamento basato sul campo precedenza. Se la lista contiene altri elementi che hanno la stessa precedenza del nuovo, il nuovo viene inserito come ultimo tra questi
+void inserimento_lista(proc_elem *&p_lista, proc_elem *p_elem)
+
+//estrae l'elemento in testa alla lista p_lista e ne restituisce un puntatore in p_elem
+void rimozione_lista(proc_elem *&p_lista, proc_elem *&p_elem)
+
+//inscerisce il proc_elem puntato da esecuzione in testa alla coda pronti
+inspronti();
+
+//distrugge il processo corrente e salta ad un altro. Attenzione: la funzione non ritorna al chiamante
+abort_p()
 
 /******** ********/
+
+
+
+/************* SEMAFORI *********/
+
+/* Essenzialmente nascono dal fatto che più processi operano concorrentemente in un sistema. Nasce dunque il problema dell'interferenza,questo vuol dire che mentre un processo
+sta eseguendo delle operazioni su una struttura dati comune, un altro processo potrebbe inserirsi e cominciare anche lui a modificare la stessa struttura dati.
+Al problema dell'interferenza e quindi all'esigenza di un coordinamento dei vari processi su strutture dati in comune, si risponde con la MUTUA ESCLUSIONE: mentre è in corso un'operazione
+su una struttura dati non ne può partire nessun'altra. Un altro problema è quello della SINCRONIZZAZIONE tra i processi: un utente può aver bisogno che un'azione B avvenga per forza e sempre
+dopo un'azione A.
+ATTENZIONE: la mutua esclusione è ben diversa dalla sincronizzazione, infatti nella seconda vogliamo garantire un ordinamento tra le azioni che si compiono, nella mutua esclusione
+vogliamo garantire che l'azione su una struttura dati sia l'unica in quell'istante.
+
+I due problemi di mutua esclusione e sincronizzazione si risolvono supponendo di avere delle scatole che possono contenere dei gettoni tutti uguali.
+Solo due operazioni possono essere eseguite su queste scatole:
+-> INSERIMENTO DI UN GETTONE, non è necessario che sia stato precedentemente preso da una scatola
+-> PRENDERE UN GETTONE, se non ve ne sono bisogna aspettare che qualcuno lo inserisca.
+
+Nel nostro sistema, quelle che finora abbiamo chiamato SCATOLE, le denominiamo più precisamente SEMAFORI, per motivi storici.
+Forniamo dunque delle primitive all'utente che può utilizzare per garantire il coordinamento tra i processi.
+
+//inizializza un semaforo (una scatola) con v risorse (v gettoni) e ne resituisce l'identificatore (o 0XFFFFFFFF se non è stato possibile crearlo)*/
+natl sem_ini(natl v);
+
+//prende un gettone (una risorsa) dal semaforo sem, blocca il processo chiamante se non ve ne sono di disponibili
+void sem_wait(natl sem);
+
+//inserisce un gettone (una risorsa) nel semaforo sem, risveglia eventuali processi bloccati in attesa di un gettone (una risorsa)
+void sem_signal(natl sem);
+
+//Ora vediamo come risolvere i problemi di mutua e sincronizzazione facendo uso di tali primitive descritte
+
+//MUTUA ESCLUSIONE
+//inizializao un semaforo con una risorsa (un gettone)
+natl mutex = sem_ini(1);
+//Ora tutte le azioni di un processo vengono protette in questo modo
+Processo:
+    sem_wait(mutex); //attendo che l'oggetto su cui voglio eseguire l'operazione sia libero
+    -> AZIONE //eseguo l'operazione
+    sem_signal(mutex); //segnalo che ora l'oggetto è libero di nuovo
+
+//SINCRONIZZAZIONE
+natl sync = sem_ini(0);
+
+//dati PA e PB due processi che dobbiamo sincronizzare
+PA:
+    ->Azione   
+    sem_signal(sync) //avviso che la condizione per fare scattare PB è vera
+
+PB:
+    sem_wait(sync) //attendo che la condizione per farmi scattare sia vera 
+    ->AZIONE
+
+//Prevediamo una struttura descrittiva dei semafori nel nucleo
+struct des_sem{
+    int counter; //il numero dei gettoni che il semaforo contiene
+    proc_elem* pointer; //processi in attesa su quel semaforo
+};
+
+// ( [P_SEM_ALLOC]
+// I semafori non vengono mai deallocati, quindi e' possibile allocarli
+// sequenzialmente. Per far questo, e' sufficiente ricordare quanti ne
+// abbiamo allocati
+natl sem_allocati = 0;
+natl alloca_sem()
+{
+        natl i;
+
+        if (sem_allocati >= MAX_SEM)
+                return 0xFFFFFFFF;
+
+        i = sem_allocati;
+        sem_allocati++;
+        return i;
+}
+
+// dal momento che i semafori non vengono mai deallocati,
+// un semaforo e' valido se e solo se il suo indice e' inferiore
+// al numero dei semafori allocati
+bool sem_valido(natl sem)
+{
+        return sem < sem_allocati;
+}
+
+// parte "C++" della primitiva sem_ini
+extern "C" natl c_sem_ini(int val)
+{
+        natl i = alloca_sem();
+
+        if (i != 0xFFFFFFFF)
+                array_dess[i].counter = val;
+
+        return i;
+}
+// )
+
+extern "C" void c_sem_wait(natl sem)
+{
+        des_sem *s;
+
+// (* una primitiva non deve mai fidarsi dei parametri
+        if (!sem_valido(sem)) {
+                flog(LOG_WARN, "semaforo errato: %d", sem);
+                c_abort_p();
+                return;
+        }
+// *)
+
+        s = &array_dess[sem];
+        (s->counter)--;
+
+        if ((s->counter) < 0) {
+                inserimento_lista(s->pointer, esecuzione);
+                schedulatore();
+        }
+}
+
+extern "C" void c_sem_signal(natl sem)
+{
+        des_sem *s;
+        proc_elem *lavoro;
+
+// (* una primitiva non deve mai fidarsi dei parametri
+        if (!sem_valido(sem)) {
+                flog(LOG_WARN, "semaforo errato: %d", sem);
+                c_abort_p();
+                return;
+        }
+// *)
+
+        s = &array_dess[sem];
+        (s->counter)++;
+
+        if ((s->counter) <= 0) {
+                rimozione_lista(s->pointer, lavoro);
+                inspronti();    // preemption
+                inserimento_lista(pronti, lavoro);
+                schedulatore(); // preemption
+        }
+}
+
+/**************************** FINE SEMAFORI **************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
