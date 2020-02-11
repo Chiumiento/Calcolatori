@@ -69,7 +69,7 @@ natl dummy_proc;        // conta il numero di processi esistenti nel sistema, qu
 
 /******** Macro cavallo_di_troia ********/
 
-/* queste devono essere usate nella parte assembler della primitiva, prima di chiamare la parte C++. Se la parte assembler chiama salva_stato, queste macro devono essere chiamate dopo, in quanto sporcano alcuni registri*/
+/* queste devono essere usate nella parte assembler della primitiva, prima di chiamare la parte C++. Se la parte assembler chiama salva_stato, queste macro devono essere chiamate dopo, in quanto sporcano alcuni registri */
 
 /* richiede un parametro, che deve essere un operando assembler; controlla che l'operando contenga un indirizzo a cui l'utente può accedere */
 cavallo_di_troia %rdi // reg, %rdi se è il primo parametro della funzione
@@ -84,15 +84,28 @@ cavallo_di_troia %rdi %rsi // base dimensione, %rdi ed %rsi se sono i primi due 
 /******** Scrivere nuove primitive ********/
 
 // costanti.h
-// per prima cosa occcorre assegnare un tipo di interruzione alla primitiva modificando il file costanti.h, supponiamo di voler aggiungere una primitiva getid() che restituisce l'identificatore del processo che la invoca
+/* per prima cosa occcorre assegnare un tipo di interruzione alla primitiva modificando il file costanti.h, supponiamo di voler aggiungere una primitiva getid() che restituisce l'identificatore del processo che la invoca */
 
 #define TIPO_GETID  0x59 // 0x59 semplicemente perchè non è ancora stato usato
 
 // sistema.s
-// per caricare il corrispondente gate della IDT possiamo aggiungere una riga alla funzione init_idt che si trova nel file sistema.s. Tale funzione è chiamata all'avvio del sistema e si occupa di inizializzare la tabella IDT. Possiamo usare la macro carica_gate che richiede tre parametri: tipo della primitiva, indirizzo a cui saltare, livello di privilegio per utilizzarla tramite una int (DPL); 
-// P = 1; I/T = T; L = S;
+/* per caricare il corrispondente gate della IDT possiamo aggiungere una riga alla funzione init_idt che si trova nel file sistema.s. Tale funzione è chiamata all'avvio del sistema e si occupa di inizializzare la tabella IDT. Possiamo usare la macro carica_gate che richiede tre parametri: tipo della primitiva, indirizzo a cui saltare, livello di privilegio per utilizzarla tramite una int (DPL);
+P = 1; I/T = T; L = S; */
 
 carica_gate TIPO_GET_ID a_getid LIV_UTENTE
+
+/* non utilizzo la salva_stato e la carica_stato poichè questo processo verrà sempre eseguito interamente */
+
+    .extern c_getid
+a_getid:
+    call c_getid
+    iretq
+
+//sistema.cpp
+/* quì scriveremo la primitiva vera e propria, in caso di funzioni che richiedono l'utilizzo della salva_stato e della carica_stato avrei dovuto dichiarare la primitiva di tipo void ed inserire il ritorno nel contesto del processo. Questo perchè il registro %RAX è inutilizzabile in quanto verrà poi riscritto con la carica_stato perdendo il ritorno voluto */
+extern "C" natl c_getid(){
+    return esecuzione->id;
+}
 
 //sys.h
 
@@ -105,6 +118,25 @@ getid:
     int $TIPO_GETID
     ret
  
+/******** ********/
+
+
+
+/******** Funzioni di supporto ********/
+ 
+// restituisce un puntatore al descrittore del processo di identificatore id (0 se tale processo non esiste)
+des_proc *des_p(natl id);
+
+// sceglie il prossimo persorso da mettere in esecuzione (cambiando quindi il valore della variabile esecuzione)
+
+/******** ********/
+
+
+
+
+
+
+
 
 
 
