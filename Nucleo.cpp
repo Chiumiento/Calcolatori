@@ -289,6 +289,16 @@ extern "C" void c_sem_signal(natl sem)
 
 
 
+/******** Memoria Virtuale ********/
+
+// questa istruzione cambia potenzialmente tutta la tabella di livello 4 usata fino al momento prima, quindi tutte le informazioni contenuto nel TLB(cache dell'MMU) sono da considerarsi non più valide e l'intero TLB viene svuotato.
+movq %rax, %cr3
+
+// questa istruzione dice al TLB di invalidare la traduzione relativa all'indirizzo dell'operando passato come argomento
+invlpg operando_in_memoria
+
+/******** Fine Memoria Virtuale ********/
+
 
 
 
