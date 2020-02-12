@@ -49,7 +49,7 @@ extern "C" void c_read_n(natl id,natb* buf,natl quanti){
 
 /*************************************************************************************************************************************************/
 
-//ATTENZIONE-> NON USIAMO LA SALVA_STATO E LA CARICA_STATO PERCHE' TANTO SARANNO LE PRIMITIVE SEMAFORICHE A BLOCCARE SALVANDO E CARICANDO LO STATO
+//ATTENZIONE-> NELLE SCRITTURE ASSEMBLER DELLE PRIMITIVE NON USIAMO LA SALVA_STATO E LA CARICA_STATO PERCHE' TANTO SARANNO LE PRIMITIVE SEMAFORICHE A BLOCCARE SALVANDO E CARICANDO LO STATO
 
 /*************************************************************************************************************************************************/
 
@@ -57,7 +57,7 @@ extern "C" void c_read_n(natl id,natb* buf,natl quanti){
 // GIRA A LIVELLO SISTEMA E DUNQUE HA BISOGNO DI UNA IRETQ PER TORNARE A LIVELLO UTENTE
 .extern c_driver
 a_driver_i:
-	call salva_stato
+	call salva_stato //
 	movq $i,%rdi
 	call c_driver
 	call apic_send_EOI
