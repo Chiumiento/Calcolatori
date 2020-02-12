@@ -48,7 +48,7 @@ struct des_proc {
                 natw iomap_base;        // si veda crea_processo()
         };
         //finiti i campi obbligatori
-        faddr cr3;      //
+        faddr cr3;      // puntatore alla tabella per la traduzione (vedi memoria virtuale)
         natq contesto[N_REG];       // quì viene memorizzato il contenuto dei registri del processore [ARRAY]
         natl cpl;       // Current Privilege Level (privilegio attuale del processore)
 };
