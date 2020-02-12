@@ -1,0 +1,35 @@
+Libro Calcolatori
+
+->  6. Interruzione di programma
+- [x] 6.1 Meccanismo di interruzione
+- [x] 6.2 Servizio effettuato dalle routine di interruzione
+- [x] 6.3 Struttura di una primitiva
+- [x] 6.4 Controllore di interruzione APIC
+- [x] 6.5 Routine di interruzione utilizzando il C++
+- [x] 6.6 Scrittura di un gate nella tabella delle interruzioni
+- [x] 6.7 Predisposizione del controllore di interruzione APIC
+- [x] 6.8 Gestione di un'interfaccia a interruzione di programma
+- [x] 6.9 Operazioni di I/O a interruzione di programma
+
+-> 7. Interfacce dei Personal Computer gestite a interruzione
+- [x]  7.1 Collegamenti e segnali del controllore APIC
+
+-> 9. Elaboratori con bus PCI
+- [x]  9.1 Il bus PCI
+- [x]  9.2 Spazi di indirizzamento del bus PCI
+- [x]  9.3 Collegamenti e transazioni col bus PCI
+- [ ]  9.4 Interruzioni col bus PCI
+- [ ]  9.5 Spazio di configurazione delle funzioni PCI
+
+-> 10. Accesso diretto alla memoria e bus mastering
+- [ ]  10.1 Accesso diretto alla memoria
+- [ ]  10.2 Operazioni in bus mastering
+- [ ]  10.3 Accesso diretto alla memoria in presenza di memoria cache
+- [ ]  10.4 Bus mastering con l'interfaccia ATA
+
+-> 11. Organizzazione interna del processore (finale facoltativo)
+- [ ]  11.1 Istruzioni complesse e istruzioni elementari
+- [ ]  11.2 Tecnica del pipeline
+- [ ]  11.3 Tecnica dell'esecuzione fuori ordine
+- [ ]  11.4 Esecuzione speculativa
+- [ ]  11.5 Considerazioni finali
