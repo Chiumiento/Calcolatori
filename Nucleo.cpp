@@ -297,7 +297,70 @@ movq %rax, %cr3
 // questa istruzione dice al TLB di invalidare la traduzione relativa all'indirizzo dell'operando passato come argomento
 invlpg operando_in_memoria
 
-/******** Fine Memoria Virtuale ********/
+// la routine di page fault deve conoscere l'indirizzo V che ha causato il fault, a tale scopo introduciamo un registro speciale del processore chiamato %cr2. Aggiungiamo poi questa nuova istruzione che la routine di page fault può eseguire per copiare l'indirizzo V in %rax in modo che poi lo possa elaborare liberamente con le istruzioni già esistenti.
+mov %cr2, %rax
+
+// istruzioni per invalidare il TLB
+movq %cr4, %rax;
+movq %rax, %cr3;
+
+// avremo un descrittore di frame per ogni frame della parte M2.  Lo scopo del descrittore e' di contenere alcune informazioni relative al contenuto del frame corrispondente. Tali informazioni servono principalmente a facilitare o rendere possibile il rimpiazzamento del contenuto stesso.
+struct des_frame {
+        int     livello;        // 0=pagina, -1=libera, >0=livello tabella
+        bool    residente;      // pagina residente o meno
+        // identificatore del processo a cui appartiene l'entita'
+        // contenuta nel frame.
+        natl    processo;
+        natl    contatore;      // contatore per le statistiche
+        // blocco da cui l'entita' contenuta nel frame era stata caricata
+        natq    ind_massa; 
+        // per risparmiare un po' di spazio uniamo due campi che
+        // non servono mai insieme:
+        // - ind_virtuale serve solo se il frame e' occupato
+        // - prossimo_libero serve solo se il frame e' libero
+        union {
+                // indirizzo virtuale che permette di risalire al
+                // descrittore che punta all'entita' contenuta nel
+                // frame. Per le pagine si tratta di un qualunque
+                // indirizzo virtuale interno alla pagina. Per le
+                // tabelle serve un qualunque indirizzo virtuale la
+                // cui traduzione passa dalla tabella.
+                vaddr   ind_virtuale;
+                des_frame*      prossimo_libero;
+        };
+};
+
+des_frame* vdf;         // vettore di descrittori di frame
+                        // (allocato in M1, si veda init_dpf())
+faddr primo_frame_utile;        // indirizzo fisico del primo frame di M2
+natq N_DF;                      // numero di frame in M2
+des_frame* frame_liberi;        // indice del descrittore del primo frame libero
+
+/* routine di page fault, ricordiamo che al termine di un fault viene rieseguita l'istruzione che lo ha causato.
+*/
+bool c_routine_pf()
+{
+        vaddr ind_virt = readCR2();     // legge dal registro %cr2 l'indirizzo che la MMU non è riuscita a tradurre, quindi carica la pagine che lo contiene e tutte le tabelle necessarie per la traduzione
+        
+        natl proc = esecuzione->id;     
+    
+        stat();
+ 
+        for (int i = 3; i >= 0; i--) {      // ciclo che va dal livello 3 al livello 0
+                tab_entry d = get_des(proc, i + 1, ind_virt);       // per ogni livello preleva il corrispondente descrittore
+                bool bitP = extr_P(d);      //estrae il bit P
+                if (!bitP) {        // se l'entità non è presente
+                        des_frame *df = swap(proc, i, ind_virt);        // la carica
+                        if (!df)        // la funzione fallisce ritornando un puntatore nullo 
+                                return false;
+                }
+        }
+        return true;
+}
+
+
+
+/******** Fine Memoria Virtuale ********/8
 
 
 
