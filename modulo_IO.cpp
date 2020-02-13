@@ -81,7 +81,17 @@ generi una nuova interruzione facendo partire il driver anche se effettivamente 
 la sem_signal() salverebbe lo stato nel descrittore del processo attivo, cioè P2, e per di piu sovrascriverebbe lo stato della a_driver_i senza 
 prima chiamarne una carica_stato. Si noti che chiamando c_sem_signal il driver manipola le code dei processi, e dunque deve essere eseguito con le
 interruzioni disabilitate. Questo comporta che anche le richieste di interruzione a precedenza maggiore dovranno attendere che il driver termini prima di
-poter essere gestite.*/
+poter essere gestite.
+
+3-> è un problema se P1 ha allocato il suo buffer nella parte utente/privata, dal momento che gli indirizzi virtuali delle sezioni private hanno significati
+diversi per ogni processo. In questo caso c_driver scriverebbe nella sezione privata di P2 e non di P1 causando due problemi: P1 non riceverà mai i dati,
+e P2 sovrascriverebbe parti casuali della sua memoria. Dobbiamo quindi richiedere che I BUFFER DI I/O VENGANO SEMPRE ALLOCATI NELLA PARTE UTENTE/CONDIVISA.
+Dal punto di vista C++ questo comporta che i buffer devono essere dichiarati globali o allocati nello heap e mai dichiarati come variabili locali altrimenti
+verrebbero allocate in pila e abbiamo deciso che le pile si trovano in parti private.
+
+Si ricordi che il buffere DEVE ESSERE RESIDENTE, e dunque non rimpiazzabile.
+*/
+
 extern "C" void c_driver(natl id){
 	des_io* d = &array_des_io[id];
 	char c;
@@ -96,6 +106,8 @@ extern "C" void c_driver(natl id){
 	*d->buf = c;
 	d->buf++;
 }
+
+/******************************************************************************************************************************************************************/
 
 
 
