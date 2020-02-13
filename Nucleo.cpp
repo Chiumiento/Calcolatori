@@ -437,6 +437,113 @@ des_frame* scegli_vittima(natl proc, int liv, vaddr ind_virt)
 }
 
 
+// routine delle statistiche
+/* può essere chiamata ogni volta che si vogliono aggiornare le statistiche di utilizzo in base ai valori correnti dei bit A nei descrittori di tabelle e pagine virtuali. Poichè la funzione, in particolare la invalida_TLB, è molto costosa ,abbiamo scelto di chiamarla solo quando si è verificato un page fault.  
+L'algoritmo utilizzato per l'aggiornamento del contatore serve a implementare una approssimazione LRU per la scelta della vittima. L'idea è di usare il contatore come un registro a scorrimento, in cui ogni posizione rappresenta una chiamata della funzione stat(), dalla più recente nel bit più significativo alla meno recente nel bit meno significativo.
+Ogni bit contiene il bit A visto dalla corrispondente stat(). in questo modo il contatore mantiene la storia degli ultimi 32 bit A visti, dando maggior peso a quelli più recenti. La pagina che ha il contatore minimo è quella che non ha visto accessi da più tempo
+*/
+
+void stat()
+{
+        des_frame *df1, *df2;
+        faddr f1, f2;
+        bool bitA;
+        // con questo for scorre tutti i descrittori di frame alla ricerca di quelli che contengono tabelle
+        for (natq i = 0; i < N_DF; i++) {
+                df1 = &vdf[i];
+                if (df1->livello < 1)       // se il livello è minore di 1 il frame o è vuoto o contiene una pagina virtuale
+                        continue;
+                f1 = indirizzo_frame(df1);      // una volta trovata una tabella, ne ottiene l'indirizzo fisico
+                // e con questo for esamina tutti i suoi 512 descrittori                
+                for (int j = 0; j < 512; j++) {
+                        tab_entry& des = get_entry(f1, j);
+                        //  controlla che i descrittori puntino ad entità presenti altrimenti la funzione fa la invalida_TLB                       
+                        if (!extr_P(des))
+                                continue;
+                        bitA = extr_A(des);         // estrae il bit A di ogni descrittore    
+                        set_A(des, false);          //azzera il bit A ottenuto
+                        // ottiene un puntatore dal descrittore del frame che contiene l'entità puntata, eventualmente saltando quelle residenti                        
+                        f2 = extr_IND_FISICO(des);
+                        df2 = descrittore_frame(f2);
+                        if (!df2 || df2->residente)     // di quelle residenti non importa aggiornare il contatore
+                                continue;
+                        df2->contatore >>= 1;       
+                        // aggiorna il contatore in base al bit A
+                        if (bitA)
+                                df2->contatore |= 0x80000000;
+                }
+        }
+        invalida_TLB();     // a questo punto, avendo azzerato tutti i bit A, dobbiamo invalidare il TLB, in modo che i successivi accessi possano riportare gli opportuni bit A ad 1.
+}
+
+// Elenco delle funzioni di utilità 
+
+/*** PAGINE FISICHE ***/
+
+// dato un indirizzo fisico indirizzo_frame restituisce un puntatore al descrittore del frame corrispondente
+des_frame* descrittore_frame(addr indirizzo_frame)
+
+// dato un puntatore ad un descrittore di frame df restituisce l'indirizzo fisico (del primo byte) del frame corrispondente
+addr indirizzo_frame(des_frame *df)
+
+// restituisce un puntatore al descrittore di un frame libero, se ve ne sono, e zero altrimenti
+des_frame* alloca_frame_libero()
+
+// rende di nuovo livero il frame puntato da df
+void rilascia_frame(des_frame *ppf)
+
+/*** DESCRITTORI DI TABELLE E PAGINE VIRTUALI ***/
+
+// restituisce un riferimento all'entrata index della tabella (di qualunque livello) di indirizzo tab
+tab_entry& get_entry(addr tab, natl index)
+
+// restituisce un riferimento al descrittore di livello liv da cui passa la traduzione dell'indirizzo ind_virt nello spazio di indirizzamento del processo proc
+tab_entry& get_des(natl proc, int liv, add ind_virt)
+
+// estrae il bit P da descrittore
+bool extr_P(tab_entry descrittore)
+
+// estrae il bit A da descrittore
+bool extr_A(tab_entry descrittore)
+
+// estrae il bit D da descrittore
+bool extr_D(tab_entry descrittore)
+
+// estrae il campo indirizzo fisico da descrittore (il campo + significativo se il bit P è ad 1)
+addr extr_IND_FISICO(tab_entry descrittore)
+
+// estrae il campo indirizzo di massa da descrittore (il campo è significativo se il bit P è a 0)
+addr extr_IND_MASSA(tab_entry descrittore)
+
+// setta il valore del bit P in descrittore in base al valore di bitP
+void set_P((tab_entry& descrittore, boot bitP)
+
+// setta il valore del bit A in descrittore in base al valore di bitA
+void set_A((tab_entry& descrittore, boot bitA)
+
+// setta il valore del bit D in descrittore in base al valore di bitD
+void set_D((tab_entry& descrittore, boot bitD)
+
+// scrive ind_fisic nel campo indirizzo fisico di descrittore
+void set_IND_FISICO(tab_entry& descrittore, addr ind_fisico)
+
+// scrive ind_massa nel campo indirizzo di massa di descrittore
+void set_IND_MASSA(tab_entry& descrittore, addr ind_massa)
+
+/*** FUNZIONI DI SUPPORTO ALLA MEMORIA VIRTUALE ***/
+
+// carica dallo swap il contenuto del frame descritto da df in base alle informazioni contenute nel descrittore stesso (legge dallo swap dal blocco df->ind_massa)
+void carica(des_frame* df)
+
+// copia il contenuto del frame descrittto da df nel corrispondente blocco dello swap (scrive nel blocco df->ind_massa)
+void scarica(des_frame *df)
+
+// rende presente l'entità contenuta in df inzializzando l'opportuno descrittore di tabella o pagina virtuale
+void collega(des_frame* df)
+
+// rende non più presente l'entità contenuta in df. Restituisce true se è necessario scaricare l'entità contenuta prima di sovrascriverla
+void scollega(des_frame* df)
+
 
 /******** Fine Memoria Virtuale ********/8
 
