@@ -403,6 +403,32 @@ des_frame* alloca_frame(natl proc, int livello, vaddr ind_virt)
         return df;      // alla fine di questo processo possiamo riutilizzare il frame
 }
 
+// routine di selezione vittima
+/* è da chiamare solo quando tutti i frame sono occupati, sceglie come vittima quello che ha il contatore minore.*/ 
+
+des_frame* scegli_vittima(natl proc, int liv, vaddr ind_virt)
+{
+        des_frame *df, *df_vittima;
+        df = &vdf[0];
+        while ( df < &vdf[N_DF] &&
+                (df->residente ||
+                 vietato(df, proc, liv, ind_virt)))
+                df++;
+        if (df == &vdf[N_DF]) return 0;
+        df_vittima = df;
+        for (df++; df < &vdf[N_DF]; df++) {
+                if (df->residente ||
+                    vietato(df, proc, liv, ind_virt))
+                        continue;
+                if (df->contatore < df_vittima->contatore ||
+                    (df->contatore == df_vittima->contatore &&
+                     df_vittima->livello > df->livello))
+                        df_vittima = df;
+        }
+        return df_vittima;
+}
+
+
 
 /******** Fine Memoria Virtuale ********/8
 
