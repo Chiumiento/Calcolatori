@@ -404,23 +404,31 @@ des_frame* alloca_frame(natl proc, int livello, vaddr ind_virt)
 }
 
 // routine di selezione vittima
-/* è da chiamare solo quando tutti i frame sono occupati, sceglie come vittima quello che ha il contatore minore.*/ 
+/* è da chiamare solo quando tutti i frame sono occupati, sceglie come vittima quello che ha il contatore minore.
+L'algoritmo è dunque una semplice ricerca lineare del minimo, con tre problemi da evitare:
+1. non si possono scegliere le pagine marcate come residenti
+2. non si possono scegliere le pagine contenenti tabelle che si trovano nello stesso percorso di traduzione dell'entità che stiamo caricando
+3. non si possono scegliere tabelle che non siano "vuote"
+restituisce true se il frame descritto da df contiene una tabella appartenente allo stesso percorso (per farlo controlla i bit opportuni del campo ind_virtuale del descrittore).
+*/ 
 
 des_frame* scegli_vittima(natl proc, int liv, vaddr ind_virt)
 {
         des_frame *df, *df_vittima;
         df = &vdf[0];
+        // nelle prossime 4 righe la funzione cerca un primo valore da usare come minimo di partenza 
         while ( df < &vdf[N_DF] &&
                 (df->residente ||
-                 vietato(df, proc, liv, ind_virt)))
+                 vietato(df, proc, liv, ind_virt)))     
                 df++;
         if (df == &vdf[N_DF]) return 0;
-        df_vittima = df;
-        for (df++; df < &vdf[N_DF]; df++) {
-                if (df->residente ||
+        df_vittima = df;    
+        // scorre tutti i rimanenti descrittori di frame alla ricerca di quello con il campo contatore di calore minimo
+        for (df++; df < &vdf[N_DF]; df++) {         
+                if (df->residente ||            // in questo if controlla di saltare frame contenenti entità residenti o vietate 
                     vietato(df, proc, liv, ind_virt))
                         continue;
-                if (df->contatore < df_vittima->contatore ||
+                if (df->contatore < df_vittima->contatore ||        // tra due entità con contatore uguale si scelga sempre quella di livello minore
                     (df->contatore == df_vittima->contatore &&
                      df_vittima->livello > df->livello))
                         df_vittima = df;
