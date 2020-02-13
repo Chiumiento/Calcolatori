@@ -109,6 +109,211 @@ extern "C" void c_driver(natl id){
 
 /******************************************************************************************************************************************************************/
 
+/* la gestione delle interruzioni con il meccanismo del driver è poco flessibile ed efficiente per due motivi:
+-> il driver deve essere eseguito con le interruzioni disabilitate, in quanto manipola direttamente le code dei processi
+-> il driver non si può bloccare in quanto non è un processo
+*/
+//trasformiamo dunque il driver in un processo, facendo in modo che l'interruzione non mandi in esecuzione l'intero driver
+// ma solo un piccolo handler il quale manda in esecuzione un processo, il quale svolgerà le istruzioni che prima svolgeva direttamente il driver
+//introdurremo un PROCESSO ESTERNO, nel senso che è esterno al modulo sistema, anche se svolge funzioni di sistema. Cosi facendo il processo esterno
+//ha modo di accedere al modulo sistema solo invocando delle primitive che quindi gireranno ad interruzioni disabilitate, ecco quindi
+// che l'accesso alle code dei processi è protetto.
+
+//struttura dell'handler, uno per ogni richiesta di interruzione proveniente da un piedino dell'APIC
+handler_i:
+	call salva_stato //salva lo stato del processo che stava girando quando la richiesta di interruzione è stata accettata
+	call inspronti //mette in pronti forzatamente il processo di cui ha salvato lo stato, perchè se stava girando era di sicuro a priorità maggiore tra quelli in coda pronti
+	movq $i,%rcx 
+	movq a_p(, %rcx, 8),%rax
+	movq %rax, esecuzione
+	call carica_stato
+	iretq
+
+//processo esterno
+extern "C" estern(natl i){
+	des_io* d = &array_des_io[i];
+	for(;;){
+		...
+		wfi();
+	}
+}
+
+//interfaccia assembler per la wfi()
+.global wfi
+wfi:
+	int $TIPO_WFI
+	ret
+
+//sospende il processo esterno e manda in esecuzione un altro processo, il processo esterno potrà andare in esecuzione di nuovo quando
+// il corrispondente handler verrà invocato in risposta ad una nuova richiesta di interruzione dell'interfaccia associata
+
+a_wfi:
+	call salva_stato
+	call apic_send_EOI
+	call schedulatore
+	call carica_stato
+	iretq
+
+
+// ESEMPIO DI PRIMITIVA DI LETTURA
+/* l'operazione è svolta in parte dalla primitiva e in parte dal processo esterno messo in esecuzione da un handler ad ogni richiesta di interruzione */
+extern "C" void read_n(natl id,natb* buf,natl quanti);
+
+//consideriamo P1 che invoca la read_n()
+// file: utente.s
+.global read_n
+read_n:
+	int $IO_TIPO_RN
+	ret
+
+//file: io.s
+// non può chiamare la salva_stato e la carica_stato poichè sono definite nel modulo sistema
+.extern c_read_n
+a_read_n:
+	cavallo_di_troia %rsi
+	cavallo_di_troia2	%rsi %rdx
+	call c_read_n
+	iretq
+
+//file: io.cpp, il solito descrittore
+struct des_io{
+	natw iRBR,iCTL;
+	nat* buf;
+	natl quanti;
+	natl mutex; //garantisce la mutua esclusione tra i processi che vogliono utilizzare la periferica di id = id;
+	natl sync; //ne garantisce la sincronizzazione
+};
+
+//file io.cpp, la solita primitiva, con la sola differenza che ora è definita nel MODULO IO e gira ad INTERRUZIONI ABILITATE
+
+extern "C" void c_read_n(natl id,natb* buf,natl quanti){
+	des_io* d = &array_des_io[id];
+	
+	sem_wait(d->mutex); //solo un processo alla volta puo eseguire le righe 43-46
+	d->buf = buf; //da qui legge il driver
+	d->quanti = quanti; //da qui legge il driver
+	outputb(1,d->iCTL); //abilito le interruzioni
+	sem_wait(d->sync); //blocca il processo qui, verrà liberato al termine dell'operazione di IO
+	sem_signal(d->mutex); //risveglio eventuali processi bloccati sul semaforo di mutua esclusione
+}
+
+//file: io.cpp , codice del processo esterno
+extern "C" void estern(natl id){
+	des_io* d = &array_des_io[id];
+	char c;
+	
+	for(;;){
+		d->quanti--;
+		if(d->quanti == 0)
+			outputb(0,d->iCTL);
+		inputb(d->iRBR,c);
+		*d->buf = c;
+		d->buf++;
+		if(d->quanti == 0)
+			sem_signal(d->sync);
+		wfi();
+	}
+}
+
+/******** FINE MODULO I/O *************************************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
