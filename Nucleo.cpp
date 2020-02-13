@@ -544,8 +544,11 @@ void collega(des_frame* df)
 // rende non più presente l'entità contenuta in df. Restituisce true se è necessario scaricare l'entità contenuta prima di sovrascriverla
 void scollega(des_frame* df)
 
+/*** PRIMITIVA TRASFORMA (I/O) ***/
+// dato un indirizzo virtuale ind_virt, restituisce il corrispondente indirizzo fisico (0 se la pagina o una qualunque delle tabelle non è presente).
+addr trasforma(addr ind_virt);
 
-/******** Fine Memoria Virtuale ********/8
+/******** Fine Memoria Virtuale ********/
 
 
 /* 
