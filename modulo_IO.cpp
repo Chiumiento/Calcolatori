@@ -55,6 +55,9 @@ extern "C" void c_read_n(natl id,natb* buf,natl quanti){
 
 // DRIVER CHE VA IN ESECUZIONE PER EFFETTO DI UNA RICHIESTA DI INTERRUZIONE DA PARTE DELL'INTERFACCIA
 // GIRA A LIVELLO SISTEMA E DUNQUE HA BISOGNO DI UNA IRETQ PER TORNARE A LIVELLO UTENTE
+/* Ipotizzando che quando arriva l'interruzione in esecuzione ci sia il processo P2, il driver salva e ripristina lo stato di P2 perchè può dover
+cambiare il processo in esecuzione, infatti quando l'ultimo byte è stato trasferito il driver deve risvegliare P1 che era fermo sulla sem_signal(d->sync). Quindi
+se P1 ha priorità maggiore di P2, è P1 che deve andare in esecuzione mentre P2 in coda pronti. Quindi la carica stato caricherà lo stato o di P1 o di P2 */
 .extern c_driver
 a_driver_i:
 	call salva_stato //
@@ -63,7 +66,42 @@ a_driver_i:
 	call apic_send_EOI
 	call carica_stato
 	iretq
- 
+
+//C++ del driver, che ha lo scopo di leggere il nuovo byte dall'interfaccia e copiarlo nel buffer dell'utente, righe 81-82
+/* SI NOTI CHE:
+	1) la disabilitazione delle interruzioni è eseguita PRIMA della lettura del byte
+	2) invece di chiamare sem_signal(), chiamo direttamente c_sem_signal()
+	3) la scrittura in d->buf è eseguita mentre è attiva la memoria virtuale di P2, anche se il buffer era stato allocato da P1
+	
+1-> la lettura del byte fa da risposta alla richiesta di interruzione da parte dell'interfaccia, che a quel punto può generarne un'altra se
+ha un nuovo byte disponibile, quindi se leggiamo l'ultimo byte mentre l'interfaccia ha le interruzioni abilitate, può succedere che l'interfaccia
+generi una nuova interruzione facendo partire il driver anche se effettivamente nessuno ha richiesto una lettura.
+
+2-> la sem_signal() salva e ripristina lo stato ma il driver non è un processo e non ha un suo descrittore di processo. Infatti se il c_driver chiamasse
+la sem_signal() salverebbe lo stato nel descrittore del processo attivo, cioè P2, e per di piu sovrascriverebbe lo stato della a_driver_i senza 
+prima chiamarne una carica_stato. Si noti che chiamando c_sem_signal il driver manipola le code dei processi, e dunque deve essere eseguito con le
+interruzioni disabilitate. Questo comporta che anche le richieste di interruzione a precedenza maggiore dovranno attendere che il driver termini prima di
+poter essere gestite.*/
+extern "C" void c_driver(natl id){
+	des_io* d = &array_des_io[id];
+	char c;
+	
+	d->quanti--;
+	if(d->quanti == 0){
+		outputb(0,d->iCTL);
+		c_sem_signal(d->sync);
+	}
+	
+	inputb(d->iRBR,c);
+	*d->buf = c;
+	d->buf++;
+}
+
+
+
+
+
+
 
 
 
