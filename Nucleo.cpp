@@ -524,7 +524,7 @@ void set_A((tab_entry& descrittore, boot bitA)
 // setta il valore del bit D in descrittore in base al valore di bitD
 void set_D((tab_entry& descrittore, boot bitD)
 
-// scrive ind_fisic nel campo indirizzo fisico di descrittore
+// scrive ind_fisico nel campo indirizzo fisico di descrittore
 void set_IND_FISICO(tab_entry& descrittore, addr ind_fisico)
 
 // scrive ind_massa nel campo indirizzo di massa di descrittore
