@@ -344,7 +344,7 @@ bool c_routine_pf()
         
         natl proc = esecuzione->id;     
     
-        stat();
+        stat();     // aggiorna le statistiche di utilizzo delle pagine e tabelle presenti
  
         for (int i = 3; i >= 0; i--) {      // ciclo che va dal livello 3 al livello 0
                 tab_entry d = get_des(proc, i + 1, ind_virt);       // per ogni livello preleva il corrispondente descrittore
@@ -358,6 +358,50 @@ bool c_routine_pf()
         return true;
 }
 
+// routine di rimpiazzamento
+// carica l'entita' del livello specificato, relativa all'indirizzo virtuale ind_virt nello spazio di indirizzamento di proc
+des_frame* swap(natl proc, int livello, vaddr ind_virt)
+{
+        tab_entry e = get_des(proc, livello + 1, ind_virt);     // prova ad allocare un frame vuoto destinato a contenere l'entità da caricare usando la funzione alloca_frame(); 
+        natq m = extr_IND_MASSA(e);     //la funzione  restituisce un puntatore al descrittore del frame allocato
+        if (!m) {       // se l'allocazione fallisce l'entita non può essere caricata e anche lo swap fallisce
+                flog(LOG_WARN,
+                     "indirizzo %p fuori dallo spazio virtuale allocato",
+                     ind_virt);
+                return 0;
+        }
+        des_frame* df = alloca_frame(proc, livello, ind_virt);      // estraiamo l'indirizzo del descrittore dell'entità in memoria di massa
+        if (!df) {      // se questo è 0 viol dire che l'indirizzo è fuori dallo spazio virtuale allocato al processo
+                flog(LOG_WARN, "memoria esaurita");
+                return 0;       // quindi lo swap fallisce
+        }
+        // riempiamo quindi i campi del descrittore con le informazioni relative all'entità da caricare
+        df->livello = livello;      // il suo livello
+        df->residente = 0;          // marchiamo l'entità come non residente
+        df->processo = proc;        // il processo a cui appartiene
+        df->ind_virtuale = ind_virt;        // l'indirizzo virtuale per la cui traduzione la stiamo caricando
+        df->ind_massa = m;      // l'indirizzo in memoria di massa appena ottenuto
+        df->contatore = 0;      // contatore per le statistiche di utilizzo che verrà poi aggiornato alla prima chiamata della funzione stat();
+        carica(df);             // carichiamo l'entità dalla memoria di massa nel frame
+        collega(df);            // e la colleghiamo
+        return df;
+}
+
+
+// alloca un frame destinato a contenere l'entita' del livello specificato, relativa all'indirizzo virtuale ind_virt nello spazio di indirizzamento di proc
+des_frame* alloca_frame(natl proc, int livello, vaddr ind_virt)
+{
+        des_frame *df = alloca_frame_libero();      // prova ad allocare un frame che sia già libero
+        if (df == 0) {      // se non ve ne sono è necessario liberarne uno scegliendo come vittima una delle entità che si trova in questo momento in memoria fisica
+                df = scegli_vittima(proc, livello, ind_virt);       // in casi estremi potrebbe non essere possibile liberare alcun frame, questa quindi fallisce
+                if (df == 0)        // e di conseguenza anche la alloca_frame è destinata a fallire
+                        return 0;   
+                bool occorre_salvare = scollega(df);        // per liberare il frame occupato dalla vittima è necesario prima scollegare la vittima, vale a dire porre a 0 il bit P nel descrittore di pagina o tabella la punta
+                if (occorre_salvare)        // ed eventualmente
+                        scarica(df);        // la scarica
+        }
+        return df;      // alla fine di questo processo possiamo riutilizzare il frame
+}
 
 
 /******** Fine Memoria Virtuale ********/8
