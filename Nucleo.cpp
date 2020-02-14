@@ -545,7 +545,7 @@ void collega(des_frame* df)
 void scollega(des_frame* df)
 
 
-/******** Fine Memoria Virtuale ********/8
+/******** Fine Memoria Virtuale ********/
 
 
 /* 
