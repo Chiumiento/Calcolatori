@@ -1,7 +1,12 @@
 /***************************************************************************/
-Delle 54 domande ho risposto alla 1,4,6.
+Delle 54 domande (MOLTE SONO DUPLICATI!)  ho risposto 
+	alla 1,4,6. del 18/01/2019
+	alla 2 del  del 02/02/2019
+	
 
-/*************************************************************************/
+
+
+/************************** 18/01/2019 ***********************************************/
 
 1) Quali informazioni ci sono nel descrittore di pagina fisica. A cosa serve
 ricordare l'indirizzo virtuale nel registro del processore cr2, durante il page-fault.
@@ -92,36 +97,15 @@ ha inviato una nuova richiesta che l'APIC ha fatto passare e dunque esso stesso 
 ricevuto una EOI per la richiesta precendente, e dunque l'ultima cosa che il processo esterno
 aveva fatto in precendenza era proprio chiamare la wfi().
 
-/*******************************************************************************************/
+/***************************************** 02/02/2019 **************************************************/
 
+2) Cosa bisogna controllare per capire se una tabella in un frame può essere
+rimpiazzabile?
 
+-> il campo bool residente del descrittore di frame; 
 
+/********************************************************************/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/******************************************************************************************/
 
 
 
