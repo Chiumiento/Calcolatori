@@ -1,7 +1,9 @@
 /***************************************************************************/
 Delle 54 domande (MOLTE SONO DUPLICATI!)  ho risposto 
 	alla 1,4,6. del 18/01/2019
-	alla 2 del  del 02/02/2019
+	alla 2,5 del  del 02/02/2019
+	alla 54 del 30/04/2019
+	
 	
 
 
@@ -97,7 +99,8 @@ ha inviato una nuova richiesta che l'APIC ha fatto passare e dunque esso stesso 
 ricevuto una EOI per la richiesta precendente, e dunque l'ultima cosa che il processo esterno
 aveva fatto in precendenza era proprio chiamare la wfi().
 
-/***************************************** 02/02/2019 **************************************************/
+/***************************************** 02/02/2019
+**************************************************/
 
 2) Cosa bisogna controllare per capire se una tabella in un frame può essere
 rimpiazzabile?
@@ -106,10 +109,45 @@ rimpiazzabile?
 
 /********************************************************************/
 
+5) Spiegare cosa succede quando avviene un cambio di processo. Qual'è
+l'eccezione più importante del corso? Spiegare il funzionamento di
+carica_stato,salva_stato. A che serve il campo punt_nucleo?Perchè punta in
+fondo alla pila sistema.(Ci riferiamo al caso di passaggio da livello utente a livello
+sistema) Come viene creato un processo?
+
+-> "la salva_stato" e "la carica_stato" si utilizzano quando vi è un cambio di processo, e quindi quando il processo stesso esegue una INT, se il processore genera un'eccezione, se il
+processore accetta un'interruzione esterna. Il codice che si segue è il seguente:
+
+call salva_stato
+...
+call carica_stato
+iretq
+
+la "salva_stato" salva lo stato del processore nel descrittore del processo identificato
+dalla variabile esecuzione. Quindi salva anche il contenuto di RSP come lasciato dal processore dopo il cambio di pila e il successivo salvataggio in questa delle cinque parole
+lunghe. 
+la "carica_stato" ripristina anche questo registro in modo che la iretq possa estrarre dalla pila le 5 parole facendo proseguire il processo dal punto in cui era stato interrotto.
+
+-> "punt_nucleo" nel des_proc punta alla pila sistema di P e si trova all'offset a cui lo legge
+l'hardware.
+
+/*************************************** 30/04/2019 *******************************************/
+54) Finestra di memoria e perché è ragionevole che fm sia all'inizio della
+memoria virtuale ?  (4 Aprile 2017 - pag1/2)
+
+-> viene creata per mantenere la MMU attiva anche quando deve accedere ad M1 (prima si
+disattivava perché sennò la routine di page fault poteva accedere soltanto ad
+M2). Si divide quindi anche la memoria virtuale in parte privata e parte utente e la
+finestra di memoria si fa coincidere con l'inizio della parte sistema della memoria
+virtuale, così gli indirizzi si traducono in loro stessi senza produrre effetti e queste
+traduzioni vanno da 0 fino all'ultimo indirizzo della memoria fisica (quindi la
+finestra di memoria contiene tutta la memoria fisica). Non si genera mai page
+fault dato che ha tutti i bit P=1.
+
+-> perché così indirizzi fisici e virtuali coincidono
 
 
-
-
+/***********************************************************************************/
 
 
 
