@@ -149,6 +149,65 @@ fault dato che ha tutti i bit P=1.
 
 /***********************************************************************************/
 
+56) Differenza tra interruzioni ed eccezioni, chi le solleva, chi le accetta e cosa fa
+il processore in un caso e nell'altro
+
+-> Le interruzioni possono essere ESTERNE o INTERNE (SOFTWARE). Le esterne arrivano alla
+CPU tramite i piedini connessi al controllore APIC. Possono giungere in qualsiasi momento
+quindi sono asincrone al programma. La CPU esamina eventuali richieste di interruzione
+solo dopo la fine di una fase di esecuzione di un'istruzione e l'inizio di un'altra fase
+di chiamata, quindi non possono sospendere l'esecuzione di un'istruzione.
+Le interruzioni interne sono prodotte da istruzioni del tipo INT $tipo, e vengono sollevate
+alla fine dell'esecuzione dell'istruzione stessa, quindi sono sincrone rispetto al programma
+in esecuzione e non possono sospendere l'esecuzione di una istruzione.
+
+-> Le ECCEZIONI sono invece prodotte da circuiti interni alla CPU ogni volta che si verifica
+una condizione di errore o speciale, mentre la CPU esegue le normale istruzioni.
+Possono sospendere dunque l'esecuzione di un'istruzione.
+Sono di tipo: TRAP -> sollevate solo tra l'esecuzione di una istruzione e la successiva.
+FAULT-> vengono sollevate durante l'esecuzione di una istruzione, in caso di errori recuperabili, causandone la sospensione.
+ABORT-> vengono sollevate durante l'esecuzione di un'istruzione, in caso di errori gravi 
+e irrecuperabili, causandone la terminazione.
+
+Ricevuto il tipo (nel caso di esterne glielo passa l'APIC sul bus, nel caso di interne
+è l'operando della INT, nel caso di eccezioni è implicito). Il tipo è associato ad un'entrata
+della IDT in cui la CPU trova l'indirizzo di salto alla routine associata.
+
+/*************************************************************************************/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
