@@ -175,13 +175,16 @@ della IDT in cui la CPU trova l'indirizzo di salto alla routine associata.
 
 /*************************************************************************************/
 
+53) Alcuni casi in cui non si può mettere extern "C"
 
+-> quando si ha a che fare con costrutti che in C non ci sono come per esempio le classi
 
+-> quando sono dichiarate extern "C" , il compilatore C++
+assume che le due funzioni seguano le regole di aggancio del linguaggio C: in
+questo modo rinunciamo alla possibilità di usare l'overloading per le primitive, ma
+nella traduzione i nomi delle funzioni rimangono gli stessi.
 
-
-
-
-
+/**************************************************************************************/
 
 
 
